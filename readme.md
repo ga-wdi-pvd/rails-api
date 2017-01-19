@@ -5,12 +5,20 @@
 - Describe what an API is, and why we might use one.
 - Describe the purpose and syntax of `respond_to`
 - Make a Rails app that provides a JSON API.
+- Compare and contrast monolithic apps vs service oriented architecture
+- Understand why we need to use CORS, and how to configure it in Rails
 
 ## Framing
 
-Yesterday afternoon you learned how to use Angular and `ngResource` to communicate with an API. In particular, you performed CRUD actions on a Grumblr API the instructors made for you. This morning you will learn how to build a Rails API from the ground up and create a back-end that serves up JSON along with the usual HTML views.
+Yesterday afternoon you learned how to use Angular and `$http` to communicate with an API. In particular, you performed CRUD actions on a Grumblr API the instructors made for you. This morning you will learn how to build a Rails API from the ground up and create a back-end that serves up JSON along with the usual HTML views.
 
-## A Quick Refresher (5 minutes / 0:05)
+But why? Why not just have your app live all together? The choice to separate your application into multiple parts should be conciously made, not blindly followed. Sometimes having one monolithic app is the way to go. Other times, you will want to split your app into various services ([Service Oriented Architecture](http://en.wikipedia.org/wiki/Service-oriented_architecture), and use APIs to communicate back and forth. Today, we will build a Rails app that acts as a REST API and communicates with JSON.
+
+### Turn and Talk (5 minutes)
+
+Research monolithic application design and service oriented architecture. Here's a nice [blog post](http://odino.org/on-monoliths-service-oriented-architectures-and-microservices/) to get started. Discuss the pros and cons of each with the closest set of ears. We'll then summarize it as a class.
+
+## A Quick Review
 
 <details>
   <summary><strong>What is an API?</strong></summary>
@@ -44,17 +52,19 @@ Form pairs and explore the API links in the below table. Record any observations
 | API | Sample URL |
 |-----|------------|
 | **[This for That](http://itsthisforthat.com/)** | http://itsthisforthat.com/api.php?json |
-| **[iTunes](https://www.apple.com/itunes/affiliates/resources/documentation/itunes-store-web-service-search-api.html)** | http://itunes.apple.com/search?term=adele |
 | **[Giphy](https://github.com/Giphy/GiphyAPI)** | http://api.giphy.com/v1/gifs/search?q=funny+cat&api_key=dc6zaTOxFJmzC |
 | **[OMDB API](http://www.omdbapi.com/)** | http://www.omdbapi.com/?t=Game%20of%20Thrones&Season=1 |
 | **[StarWars](http://swapi.co/)** | http://swapi.co/api/people/3 |
-| **[Stocks](http://dev.markitondemand.com/MODApis/)** | http://dev.markitondemand.com/Api/Quote/json?symbol=AAPL |
+
+<details><summary>What kinds of requests are we making to these APIs?</summary>GET requests</details> 
+
+What are some ways to make POST, PUT and DELETE requests?
 
 ## A Closer Look at an API Request (5 minutes / 0:15)
 
-Let's make a basic HTTP request to an API. While we can do this in the browser, we're going to use Postman - a Chrome plug-in for making HTTP requests - so we can not only look at it in more detail, but also make `POST` `PUT` and `DELETE` from the browser without building an app.  
+Let's make a basic HTTP request to an API. While we can do this in the browser, we're going to use Postman - a stand-alone app and Chrome plug-in for making HTTP requests - so we can not only look at it in more detail, but also make `POST` `PUT` and `DELETE` from the browser without building an app.  
 
-#### Postman Setup
+#### Postman Setup (or use cURL)
 
 1. [Download Postman](https://www.getpostman.com/).  
 2. Type in the "url" of an API call.  
@@ -81,6 +91,8 @@ Let's demonstrate using Grumblr. Clone down this [starter code](https://github.c
 $ git clone git@github.com:ga-wdi-exercises/grumblr_rails_api.git
 $ cd grumblr_rails_api
 $ git checkout api-starter
+$ bundle install
+$ rails db:setup # combines create and migrate
 $ rails s
 ```
 
@@ -115,9 +127,11 @@ There's something under the `URI Pattern` column we haven't talked about much ye
 * Which format have we dealt with primarily so far?
 * Which format do we need our application to render in order to have a functional API?
 
+Also notice that we are not namespacing our api, and instead accessing it at `/grumbles/`. What future problems could this present?
+
 ## I Do: Grumblr grumbles#show (10 minutes / 0:35)
 
-> Please follow along.
+> Please follow along as I code this part.
 
 Let's set up Grumblr so that it returns JSON. `Grumbles#show` is a small, well-defined step. Let's start there.
 
@@ -128,6 +142,8 @@ Let's set up Grumblr so that it returns JSON. `Grumbles#show` is a small, well-d
   > If I ask for JSON, Rails renders json.
 
 </details>
+
+<details><summary>What part of the rMVC should be responsible for various response formats?</summary>The Controller! And maybe the router, too. A request comes in to the router, asking for a certain URL and sometimes a certain format, and the controller is responsible for delivering the correct formatted data back to the requester.</details> 
 
 In particular, we want `/grumbles/4.json` to return something like this...
 
@@ -194,7 +210,7 @@ end
 >
 > Note the nested JSON objects.
 
-Let's demo this in the browser and Postman.
+Let's demo this in the browser and Postman. Note that you can also use the query string and pass format=json in the url.
 
 ## We Do: Grumbles#index (5 minutes / 0:40)
 
@@ -257,7 +273,7 @@ It's your turn to do the same for Comments. You should be working in `comments_c
 
 * Make it so that the JSON request to Comments#show only return `authorName`, `content`, `title` and `photoUrl`. No `created_at` or `updated_at`.
 * Make it so that the JSON request to Comments#show also includes the grumble.
-* Make it so that the artists received from JSON requests to Grumbles#index and Grumbles#show also include their comments
+* Make it so that the grumbles received from JSON requests to Grumbles#index and Grumbles#show also include their comments
 
 > All of these will require some Googling.
 
@@ -276,12 +292,7 @@ Here's our current code...
 # grumbles_controller.rb
 
 def create
-  @grumble = Grumble.new(grumble_params)
-  if @grumble.save!
-    redirect_to @grumble
-  else
-    render :new
-  end
+  @grumble = Grumble.create(grumble_params)
 end
 ```
 
@@ -292,7 +303,7 @@ We need to update the response to respond to the format.
 <details>
   <summary><strong>What do we want to happen after a successful save? How about an unsuccessful one?</strong></summary>
 
-  > If the save is successful, either redirect the user to the artist show page (HTML) or send back the new artist (JSON).
+  > If the save is successful, either redirect the user to the grumble show page (HTML) or send back the new grumble (JSON).
   >
   > If the save fails, either send the user back to the new form (HTML) or send back an error message (JSON).
 
@@ -305,7 +316,7 @@ def create
   @grumble = Grumble.new(grumble_params)
 
   respond_to do |format|
-    if @grumble.save!
+    if @grumble.save
       format.html { redirect_to @grumble, notice: 'Grumble was successfully created.' }
       format.json { render json: @grumble, status: :created, location: @grumble }
     else
@@ -324,6 +335,7 @@ If the save fails...
 * When the requested format is "html", we render the `:new` page to show the human the error of their ways
 * When the requested format is "json", we return the error as JSON and inform the requesting computer that we have an `unprocessable_entity`.
 
+<details><summary>Why are status codes important? Why can’t we say, 200, and put up a “we’re sorry page?”</summary>Programs that depend on those codes would completely fail! And there are many programs that write functionality based on HTTP status codes, NOT based on which version of a page is being served.</details> 
 ### Testing Grumbles#create
 
 How do we usually test this functionality in the browser? A form!  
@@ -332,7 +344,7 @@ But for this lesson, we're going to continue using Postman. Here's how you do it
   1. Enter url: `localhost:3000/grumbles`  
   2. Method: POST  
   3. Under the "Headers" tab, add a `Content-Type` key with a value of `application/json`
-  3. Add your Grumble data to "Request Body".  
+  4. Under the "Body" tab, select "raw", then some sort of JSON. Then add your Grumble JSON data in the code edit area.  
     ```json
     {
       "grumble": {
@@ -343,7 +355,7 @@ But for this lesson, we're going to continue using Postman. Here's how you do it
       }
     }
     ```
-  4. Press "Submit".  
+  4. Press "Send".  
 
 > `Content-Type` is indicating what type of data we are sending to the server - not what we are expecting back.
 
@@ -378,7 +390,9 @@ Success should look like this...
 
 ![Create Grumble 200 OK in Postman](http://i.imgur.com/7bncv7w.png)
 
-We should now get a `200` response code signifying a successful `POST` request and we can preview the html page sent back as the response (our newly created artist's show page)
+We should now get a `200` response code signifying a successful `POST` request and we can preview the html page sent back as the response (our newly created grumble's show page)
+
+<details><summary>How can we further verify the grumble was created?</summary>using `rails c` and checking out our last Grumble!</details> 
 
 ## Break (10 minutes / 1:45)
 
@@ -442,7 +456,7 @@ Your turn. Make sure we can create and update Comments via requests that expect 
 * If you haven't already done so, implement the bonuses from earlier in the lesson
   * Make it so that the JSON request to Comments#show only return `authorName`, `content`, `title` and `photoUrl`. No `created_at` or `updated_at`.
   * Make it so that the JSON request to Comments#show also includes the grumble.
-  * Make it so that the artists received from JSON requests to Grumbles#index and Grumbles#show also include their comments
+  * Make it so that the grumbles received from JSON requests to Grumbles#index and Grumbles#show also include their comments
 * Make it so that when you delete a Grumble or Comment via Postman, you get a JSON object confirming that the Grumble or Comment has been deleted
 
 ## Pro-Tip: `include`
@@ -528,6 +542,24 @@ Chances are you might encounter some Cross-Origin errors when building an API fo
 
 ## Closing / Questions
 
+Why would we want to build an API-only app?
+
+What "language"  do APIs most commonly speak?
+
+Good idea or bad: `protect_with_forgery` is causing me errors! Just take it out and move on.
+
+What are some potential issues with this CORS setup?
+```ruby
+# config/initializers/cors.rb
+Rails.application.config.middleware.insert_before 0, "Rack::Cors" do
+allow do
+  origins 'localhost:4200'
+  resource '*',
+           headers: :any,
+           methods: %i(get post put patch delete options head)
+  end
+end
+```
 ## Resources
 
 * [Postman](https://www.getpostman.com/)
