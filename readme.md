@@ -10,7 +10,7 @@
 
 ## Framing
 
-Yesterday afternoon you learned how to use Angular and `$http` to communicate with an API. In particular, you performed CRUD actions on a Grumblr API the instructors made for you. This morning you will learn how to build a Rails API from the ground up and create a back-end that serves up JSON along with the usual HTML views.
+Yesterday afternoon you learned how to use Angular and `$http` to communicate with an API. This morning you used `$resource`. In particular, you performed CRUD actions on a Grumblr API the instructors made for you. This afternoon you will learn how to build a Rails API from the ground up and create a back-end that serves up JSON along with the usual HTML views.
 
 But why? Why not just have your app live all together? The choice to separate your application into multiple parts should be conciously made, not blindly followed. Sometimes having one monolithic app is the way to go. Other times, you will want to split your app into various services ([Service Oriented Architecture](http://en.wikipedia.org/wiki/Service-oriented_architecture), and use APIs to communicate back and forth. Today, we will build a Rails app that acts as a REST API and communicates with JSON.
 
@@ -55,6 +55,7 @@ Form pairs and explore the API links in the below table. Record any observations
 | **[Giphy](https://github.com/Giphy/GiphyAPI)** | http://api.giphy.com/v1/gifs/search?q=funny+cat&api_key=dc6zaTOxFJmzC |
 | **[OMDB API](http://www.omdbapi.com/)** | http://www.omdbapi.com/?t=Game%20of%20Thrones&Season=1 |
 | **[StarWars](http://swapi.co/)** | http://swapi.co/api/people/3 |
+| **[Splitwise](https://splitwise.com)** | https://secure.splitwise.com/api/v3.0/get_expenses |
 
 <details><summary>What kinds of requests are we making to these APIs?</summary>GET requests</details> 
 
