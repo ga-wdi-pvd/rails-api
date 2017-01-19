@@ -544,7 +544,7 @@ Chances are you might encounter some Cross-Origin errors when building an API fo
 
 Why would we want to build an API-only app?
 
-What "language"  do APIs most commonly speak?
+What "language" do APIs most commonly speak?
 
 Good idea or bad: `protect_with_forgery` is causing me errors! Just take it out and move on.
 
@@ -553,7 +553,7 @@ What are some potential issues with this CORS setup?
 # config/initializers/cors.rb
 Rails.application.config.middleware.insert_before 0, "Rack::Cors" do
 allow do
-  origins 'localhost:4200'
+  origins 'localhost:3000'
   resource '*',
            headers: :any,
            methods: %i(get post put patch delete options head)
